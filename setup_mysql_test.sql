@@ -1,11 +1,9 @@
--- create database hbnb_test_db if it does not exist
+-- Creating hbnb_test_db database
+-- Privileges for new user (hbnb_test)
 CREATE DATABASE IF NOT EXISTS hbnb_test_db;
-
--- create user hbnb_test in localhost if it does not exist
-CREATE USER IF NOT EXISTS 'hbnb_test'@'localhost' IDENTIFIED BY 'hbnb_test_pwd';
-
--- grant user hbnb_test all privilleges on hbnb_test_db database only
+CREATE USER IF NOT EXISTS 'hbnb_test'@'localhost';
+SET PASSWORD FOR 'hbnb_test'@'localhost' = 'hbnb_test_pwd';
+USE hbnb_test_db;
 GRANT ALL PRIVILEGES ON hbnb_test_db.* TO 'hbnb_test'@'localhost';
-
--- grant user hbnb_test SELECT privileges on performance_schema database only
 GRANT SELECT ON performance_schema.* TO 'hbnb_test'@'localhost';
+FLUSH PRIVILEGES;

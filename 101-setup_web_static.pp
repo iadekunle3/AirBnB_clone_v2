@@ -1,74 +1,62 @@
-# Install Nginx
-class { 'nginx': }
+# Script that configures Nginx server with some folders and files
 
-# Create necessary directories
-file { '/data/':
-  ensure => 'directory',
-  owner  => 'ubuntu',
-  group  => 'ubuntu',
-  mode   => '0755',
+exec {'update':
+  provider => shell,
+  command  => 'sudo apt-get -y update',
+  before   => Exec['install Nginx'],
 }
 
-file { '/data/web_static/':
-  ensure => 'directory',
-  owner  => 'ubuntu',
-  group  => 'ubuntu',
-  mode   => '0755',
+exec {'install Nginx':
+  provider => shell,
+  command  => 'sudo apt-get -y install nginx',
+  before   => Exec['start Nginx'],
 }
 
-file { '/data/web_static/releases/':
-  ensure => 'directory',
-  owner  => 'ubuntu',
-  group  => 'ubuntu',
-  mode   => '0755',
+exec {'start Nginx':
+  provider => shell,
+  command  => 'sudo service nginx start',
+  before   => Exec['create first directory'],
 }
 
-file { '/data/web_static/shared/':
-  ensure => 'directory',
-  owner  => 'ubuntu',
-  group  => 'ubuntu',
-  mode   => '0755',
+exec {'create first directory':
+  provider => shell,
+  command  => 'sudo mkdir -p /data/web_static/releases/test/',
+  before   => Exec['create second directory'],
 }
 
-file { '/data/web_static/releases/test/':
-  ensure => 'directory',
-  owner  => 'ubuntu',
-  group  => 'ubuntu',
-  mode   => '0755',
+exec {'create second directory':
+  provider => shell,
+  command  => 'sudo mkdir -p /data/web_static/shared/',
+  before   => Exec['content into html'],
 }
 
-file { '/data/web_static/releases/test/index.html':
-  ensure => 'file',
-  owner  => 'ubuntu',
-  group  => 'ubuntu',
-  mode   => '0644',
-  content => '<html><body>Holberton School</body></html>',
+exec {'content into html':
+  provider => shell,
+  command  => 'echo "Holberton School" | sudo tee /data/web_static/releases/test/index.html',
+  before   => Exec['symbolic link'],
 }
 
-# Create symbolic link
-file { '/data/web_static/current':
-  ensure => 'link',
-  target => '/data/web_static/releases/test/',
-  owner  => 'ubuntu',
-  group  => 'ubuntu',
-  require => File['/data/web_static/releases/test/'],
+exec {'symbolic link':
+  provider => shell,
+  command  => 'sudo ln -sf /data/web_static/releases/test/ /data/web_static/current',
+  before   => Exec['put location'],
 }
 
-# Update Nginx configuration
-file { '/etc/nginx/sites-available/default':
-  content => "server {
-                listen 80;
-                listen [::]:80;
-                location /hbnb_static/ {
-                    alias /data/web_static/current/;
-                }
-            }",
-  notify => Service['nginx'],
+exec {'put location':
+  provider => shell,
+  command  => 'sudo sed -i \'38i\\tlocation /hbnb_static/ {\n\t\talias /data/web_static/current/;\n\t\tautoindex off;\n\t}\n\' /etc/nginx/sites-available/default',
+  before   => Exec['restart Nginx'],
 }
 
-# Set ownership of /data/ folder recursively
-exec { 'set_ownership':
-  command => 'chown -R ubuntu:ubuntu /data/',
-  path    => ['/bin', '/usr/bin', '/sbin', '/usr/sbin'],
-  onlyif  => 'test "$(stat -c %U:%G /data/)" != "ubuntu:ubuntu"',
+exec {'restart Nginx':
+  provider => shell,
+  command  => 'sudo service nginx restart',
+  before   => File['/data/']
+}
+
+file {'/data/':
+  ensure  => directory,
+  owner   => 'ubuntu',
+  group   => 'ubuntu',
+  recurse => true,
 }
